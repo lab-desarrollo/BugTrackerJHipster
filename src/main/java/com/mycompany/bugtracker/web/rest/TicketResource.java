@@ -18,6 +18,11 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.security.access.annotation.Secured;
+import com.mycompany.bugtracker.security.AuthoritiesConstants;
+import io.swagger.annotations.ApiParam;
+import org.springframework.data.domain.PageImpl;
 
 import javax.validation.Valid;
 import java.net.URI;
@@ -100,7 +105,21 @@ public class TicketResource {
         if (eagerload) {
             page = ticketRepository.findAllWithEagerRelationships(pageable);
         } else {
-            page = ticketRepository.findAll(pageable);
+            //page = ticketRepository.findAll(pageable);
+            page = ticketRepository.findAllByOrderByDueDateAsc(pageable);
+        }
+        HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page);
+        return ResponseEntity.ok().headers(headers).body(page.getContent());
+    }
+
+    @GetMapping("/tickets/self")
+    public ResponseEntity<List<Ticket>> getAllSelfTickets(Pageable pageable, @RequestParam(required = false, defaultValue = "false") boolean eagerload) {
+        log.debug("REST request to get a page of user's Tickets");
+        Page<Ticket> page;
+        if (eagerload) {
+            page = ticketRepository.findAllWithEagerRelationships(pageable);
+        } else {
+            page = new PageImpl<>(ticketRepository.findByAssignedToIsCurrentUser());
         }
         HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page);
         return ResponseEntity.ok().headers(headers).body(page.getContent());
@@ -126,6 +145,7 @@ public class TicketResource {
      * @return the {@link ResponseEntity} with status {@code 204 (NO_CONTENT)}.
      */
     @DeleteMapping("/tickets/{id}")
+    @Secured(AuthoritiesConstants.ADMIN)
     public ResponseEntity<Void> deleteTicket(@PathVariable Long id) {
         log.debug("REST request to delete Ticket : {}", id);
         ticketRepository.deleteById(id);
