@@ -31,4 +31,4 @@ jobs:
             - name: Run frontend test
               run: npm run test
             - name: Package application
-              run: ./mvnw -ntp package deploy -Pprod -DskipTests
+              run: ./mvnw -ntp package -Pprod -DskipTests
